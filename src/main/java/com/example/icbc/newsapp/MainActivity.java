@@ -1,6 +1,7 @@
 package com.example.icbc.newsapp;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Handler;
@@ -13,6 +14,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -43,12 +46,13 @@ import java.util.Date;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+
     public final String TAG = getClass().getSimpleName();
-    private String key = "9f2875cfe5b06809d5dfaed4604aae80";
-    private String queryOption = "油价六连跌";
-    private String url2 = "http://op.juhe.cn/onebox/news/query?key="+key+"&q=" + queryOption + new Date().getTime();
-    private String url1 = "http://op.juhe.cn/onebox/news/words?key="+key;
+    public static final String KEY = "9f2875cfe5b06809d5dfaed4604aae80";
+    private String url1 = "http://op.juhe.cn/onebox/news/words?key="+KEY;
     private static final int SHOW_RESPONSE = 0;
+
+    public static String title = "WordItem";
 
     private Button sendRequest;
 
@@ -58,9 +62,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private Context context;
 
-    private List<VolleyItem> datas = new ArrayList<VolleyItem>();
+    private List<String> datas = new ArrayList<String>();
 
     private StringRequest stringRequest;
+
+    private ArrayAdapter<String> adapter;
 
 //    异步加载UI界面
     private Handler handler = new Handler(){
@@ -76,7 +82,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     };
     private RequestQueue requestQueue;
     private ListView listView;
-    private NewsAdapter adapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -87,30 +92,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         requestQueue = Volley.newRequestQueue(context);
 
-//        sendRequest = (Button) findViewById(R.id.send_request);
-//        responseText = (TextView) findViewById(R.id.response_text);
-//        imageView = (ImageView) findViewById(R.id.image_view);
-//        sendRequest.setOnClickListener(this);
         this.stringRequest = new StringRequest(url1, new Response.Listener<String>() {
-
-            final String imageUrl = "http://avatar.csdn.net/9/C/5/1_dyyaries.jpg";
 
             @Override
             public void onResponse(String s) {
                 try {
                     JSONObject jsonObject = new JSONObject(s);
                     JSONArray array = jsonObject.getJSONArray("result");
-                    Log.i(TAG,"数据明细"+array.toString());
-                    Log.i(TAG,"响应数据条数为 "+array.length()+" 条!");
+                    Log.i(TAG,array.get(0).toString());
                     for(int i = 1;i<array.length();i++){
-                        VolleyItem result =
-                                new Gson().fromJson(array.getJSONObject(i).toString(),
-                                        VolleyItem.class);
-                        Log.i("result", "" + result.toString());
-//                        静态设置imageUrl用于测试
-//                        result.setImg(imageUrl);
-                        datas.add(result);
-                        adapter.ntifyDataSetChanged(datas);
+                        datas.add(array.get(i).toString());
+
+                        if(adapter != null){
+                            adapter.notifyDataSetChanged();
+                        }
                     }
 
                 } catch (JSONException e) {
@@ -126,15 +121,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         requestQueue.add(stringRequest);
 
-        requestQueue.start();;
+        requestQueue.start();
 
-        Log.i("内容条数",""+datas.size());
-
-        this.adapter = new NewsAdapter(MainActivity.this,requestQueue,datas);
+        adapter = new ArrayAdapter<String>(MainActivity.this,
+                android.R.layout.simple_list_item_1,datas);
 
         this.listView = (ListView)findViewById(R.id.list_view);
 
         this.listView.setAdapter(adapter);
+
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent intent = new Intent(MainActivity.this, ContentActivity.class);
+                TextView tv = (TextView) view.findViewById(android.R.id.text1);
+                Log.i(TAG, "Item文字:" + tv.getText().toString());
+                intent.putExtra(title, tv.getText().toString());
+                startActivity(intent);
+            }
+        });
 
     }
 
